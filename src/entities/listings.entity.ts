@@ -1,9 +1,11 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { BodyType } from './nested/body-type.entity';
 import { Make } from './nested/makes.entity';
@@ -40,4 +42,10 @@ export class Listing {
 
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }
