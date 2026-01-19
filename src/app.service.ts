@@ -1,10 +1,9 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ListingRepository } from './listing.repository';
 import { CreateListingInputDto } from './dto/create-listing-input.dto';
-import { PaginationDto } from './dto/pagination.dto';
 import { PaginatedResponseDto } from './dto/pagination-response.dto';
-import { Listing } from './entities/listings.entity';
 import { GetListingsDto } from './dto/get-listings.dto';
+import { ListingResponseDto } from './dto/listing.model';
 
 @Injectable()
 export class AppService {
@@ -24,7 +23,7 @@ export class AppService {
 
   async getListings(
     data: GetListingsDto,
-  ): Promise<PaginatedResponseDto<Listing>> {
+  ): Promise<PaginatedResponseDto<ListingResponseDto>> {
     const { items, total } = await this.listingRepository.findWithFilters(
       data.filters,
       data.pagination,

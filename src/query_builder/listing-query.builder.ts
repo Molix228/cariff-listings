@@ -5,24 +5,29 @@ import { SortOrder } from 'src/enums/sort-order.enum';
 import { SelectQueryBuilder } from 'typeorm';
 
 export class ListingQueryBuilder {
-  constructor(private queryBuilder: SelectQueryBuilder<Listing>) {}
+  constructor(private queryBuilder: SelectQueryBuilder<Listing>) {
+    this.queryBuilder
+      .leftJoinAndSelect('listing.make', 'make')
+      .leftJoinAndSelect('listing.model', 'model')
+      .leftJoinAndSelect('listing.bodyType', 'bodyType');
+  }
 
   applyFilters(filters: ListingFiltersDto): this {
     if (filters.searchText) {
       this.queryBuilder.andWhere(
-        '(listing.title ILIKE :search OR listing.description ILIKE :search',
+        '(make.name ILIKE :search OR model.name ILIKE :search OR listing.description ILIKE :search',
         { search: `%${filters.searchText}%` },
       );
     }
 
-    if (filters.makes?.length) {
-      this.queryBuilder.andWhere('listing.make IN (:...makes)', {
+    if (filters.makes && filters.makes.length > 0) {
+      this.queryBuilder.andWhere('listing.make_id IN (:...makes)', {
         makes: filters.makes,
       });
     }
 
-    if (filters.models?.length) {
-      this.queryBuilder.andWhere('listing.model IN (:...models)', {
+    if (filters.models && filters.models.length > 0) {
+      this.queryBuilder.andWhere('listing.model_id IN (:...models)', {
         models: filters.models,
       });
     }
