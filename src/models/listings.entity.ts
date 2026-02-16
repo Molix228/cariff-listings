@@ -31,10 +31,13 @@ export class Listing {
   @Column({ type: 'date', name: 'initial_reg', nullable: false })
   initialReg: Date;
 
-  @Column({ type: 'decimal', nullable: false })
+  @Column({ type: 'int', name: 'mileage', nullable: false })
+  mileage: number;
+
+  @Column({ type: 'decimal', name: 'price', nullable: false })
   price: number;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', name: 'description', nullable: true })
   description?: string;
 
   @Column('text', { array: true, nullable: false })

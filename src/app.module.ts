@@ -3,13 +3,14 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { ConfigModule } from '@nestjs/config';
-import { ListingRepository } from './listing.repository';
+import { ListingRepository } from './repositories/listing.repository';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Listing } from './entities/listings.entity';
-import { BodyType } from './entities/nested/body-type.entity';
-import { Make } from './entities/nested/makes.entity';
-import { Model } from './entities/nested/models.entity';
+import { Listing } from './models/listings.entity';
+import { BodyType } from './models/nested/body-type.entity';
+import { Make } from './models/nested/makes.entity';
+import { Model } from './models/nested/models.entity';
 import { HealthModule } from './health/health.module';
+import { VehicleDataModule } from './modules/vehicle-data.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { HealthModule } from './health/health.module';
     HealthModule,
     TypeOrmModule.forFeature([Listing, BodyType, Make, Model]),
     DatabaseModule,
+    VehicleDataModule,
   ],
   controllers: [AppController],
   providers: [AppService, ListingRepository],

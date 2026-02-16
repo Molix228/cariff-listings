@@ -16,7 +16,7 @@ async function bootstrap() {
           requestTimeout: 25000,
         },
         consumer: {
-          groupId: 'listing-consumer-server',
+          groupId: 'listing-consumer',
           sessionTimeout: 30000,
           heartbeatInterval: 3000,
         },

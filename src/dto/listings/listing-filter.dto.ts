@@ -2,6 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
   ValidateNested,
@@ -13,19 +14,24 @@ import { DateRangeDto } from './nested/date-range.dto';
 export class ListingFiltersDto {
   @IsOptional()
   @IsString()
+  userId?: string;
+
+  @IsOptional()
+  @IsString()
   searchText?: string = '';
 
   @IsOptional()
-  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
   @IsArray()
-  @IsString({ each: true })
-  makes?: string[];
+  @IsNumber({}, { each: true })
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @Type(() => Number)
+  makeId?: number[];
 
   @IsOptional()
-  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
   @IsArray()
-  @IsString({ each: true })
-  models?: string[];
+  @IsNumber({}, { each: true })
+  @Type(() => Number)
+  modelId?: number[];
 
   @IsOptional()
   @ValidateNested()

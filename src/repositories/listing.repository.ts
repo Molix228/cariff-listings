@@ -1,5 +1,5 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { Listing } from './entities/listings.entity';
+import { Listing } from '../models/listings.entity';
 import { Repository } from 'typeorm';
 import {
   Injectable,
@@ -7,13 +7,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { ListingQueryBuilder } from './query_builder/listing-query.builder';
-import { PaginationDto } from './dto/pagination.dto';
-import { ListingFiltersDto } from './dto/listing-filter.dto';
-import { BodyType } from './entities/nested/body-type.entity';
-import { CreateListingInputDto } from './dto/create-listing-input.dto';
-import { Make } from './entities/nested/makes.entity';
-import { Model } from './entities/nested/models.entity';
+import { ListingQueryBuilder } from '../query_builder/listing-query.builder';
+import { BodyType } from '../models/nested/body-type.entity';
+import { Make } from '../models/nested/makes.entity';
+import { Model } from '../models/nested/models.entity';
+import { CreateListingInputDto } from 'src/dto/listings/create-listing-input.dto';
+import { ListingFiltersDto } from 'src/dto/listings/listing-filter.dto';
+import { PaginationDto } from 'src/dto/listings/pagination.dto';
 
 @Injectable()
 export class ListingRepository {

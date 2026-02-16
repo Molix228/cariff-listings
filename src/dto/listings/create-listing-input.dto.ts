@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsDate,
@@ -10,23 +11,33 @@ import {
 export class CreateListingInputDto {
   @IsNumber()
   @IsNotEmpty()
+  @Type(() => Number)
   makeId: number;
 
   @IsNumber()
   @IsNotEmpty()
+  @Type(() => Number)
   modelId: number;
 
   @IsNumber()
   @IsNotEmpty()
+  @Type(() => Number)
   bodyTypeId: number;
 
   @IsDate()
   @IsNotEmpty()
+  @Type(() => Date)
   initialReg: Date;
 
   @IsNumber()
   @IsNotEmpty()
+  @Type(() => Number)
   price: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @Type(() => Number)
+  mileage: number;
 
   @IsString()
   @IsOptional()

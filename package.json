@@ -12,6 +12,12 @@
     "start:dev": "cross-env NODE_ENV=development nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "cross-env NODE_ENV=production node dist/main",
+    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
+    "migration": "yarn typeorm migration:run -d ./src/database/config/ormconfig.ts",
+    "migration:status": "yarn typeorm migration:show -d ./src/database/config/ormconfig.ts",
+    "migration:revert": "yarn typeorm -d ./src/database/config/ormconfig.ts migration:revert",
+    "migration:generate": "yarn typeorm migration:generate -d ./src/database/config/ormconfig.ts",
+    "migration:create": "yarn typeorm migration:create",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -36,7 +42,8 @@
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "typeorm": "^0.3.25"
+    "typeorm": "^0.3.25",
+    "typeorm-naming-strategies": "^4.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

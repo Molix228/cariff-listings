@@ -1,8 +1,8 @@
-import { ListingFiltersDto } from 'src/dto/listing-filter.dto';
-import { PaginationDto } from 'src/dto/pagination.dto';
-import { Listing } from 'src/entities/listings.entity';
+import { Listing } from 'src/models/listings.entity';
 import { SortOrder } from 'src/enums/sort-order.enum';
-import { SelectQueryBuilder } from 'typeorm';
+import { Brackets, SelectQueryBuilder } from 'typeorm';
+import { ListingFiltersDto } from 'src/dto/listings/listing-filter.dto';
+import { PaginationDto } from 'src/dto/listings/pagination.dto';
 
 export class ListingQueryBuilder {
   constructor(private queryBuilder: SelectQueryBuilder<Listing>) {
@@ -13,22 +13,37 @@ export class ListingQueryBuilder {
   }
 
   applyFilters(filters: ListingFiltersDto): this {
-    if (filters.searchText) {
-      this.queryBuilder.andWhere(
-        '(make.name ILIKE :search OR model.name ILIKE :search OR listing.description ILIKE :search',
-        { search: `%${filters.searchText}%` },
-      );
-    }
-
-    if (filters.makes && filters.makes.length > 0) {
-      this.queryBuilder.andWhere('listing.make_id IN (:...makes)', {
-        makes: filters.makes,
+    if (filters.userId) {
+      this.queryBuilder.andWhere('listing.user_id = :userId', {
+        userId: filters.userId,
       });
     }
 
-    if (filters.models && filters.models.length > 0) {
-      this.queryBuilder.andWhere('listing.model_id IN (:...models)', {
-        models: filters.models,
+    if (filters.searchText) {
+      this.queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.where('make.make ILIKE :search', {
+            search: `%${filters.searchText}%`,
+          })
+            .orWhere('model.name ILIKE :search', {
+              search: `%${filters.searchText}%`,
+            })
+            .orWhere('listing.description ILIKE :search', {
+              search: `%${filters.searchText}%`,
+            });
+        }),
+      );
+    }
+
+    if (filters.makeId && filters.makeId.length > 0) {
+      this.queryBuilder.andWhere('listing.make_id IN (:...makeIds)', {
+        makeIds: filters.makeId,
+      });
+    }
+
+    if (filters.modelId && filters.modelId.length > 0) {
+      this.queryBuilder.andWhere('listing.model_id IN (:...modelIds)', {
+        modelIds: filters.modelId,
       });
     }
 
