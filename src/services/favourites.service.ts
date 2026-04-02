@@ -25,7 +25,7 @@ export class FavouritesService {
     try {
       const favourites =
         await this.favouritesRepository.findUserFavourites(userId);
-      return favourites.map((fav) => fav.listing);
+      return favourites.map((fav) => fav.listing).filter(Boolean);
     } catch (err) {
       throw new RpcException({
         status: HttpStatus.INTERNAL_SERVER_ERROR,

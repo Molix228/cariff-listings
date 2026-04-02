@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -19,6 +20,7 @@ export class Favourites {
   listingId: string;
 
   @ManyToOne(() => Listing, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'listing_id' })
   listing: Listing;
 
   @CreateDateColumn({ name: 'created_at' })
