@@ -21,7 +21,13 @@ export class FavouritesRepository {
   async findUserFavourites(userId: string): Promise<Favourites[]> {
     return this.repository.find({
       where: { userId },
-      relations: ['listing'],
+      relations: {
+        listing: {
+          make: true,
+          model: true,
+          bodyType: true,
+        },
+      },
       order: { createdAt: 'DESC' },
     });
   }
