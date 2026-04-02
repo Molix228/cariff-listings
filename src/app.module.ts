@@ -1,9 +1,6 @@
-import { Logger, Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { Module } from '@nestjs/common';
 import { DatabaseModule } from './database/database.module';
 import { ConfigModule } from '@nestjs/config';
-import { ListingRepository } from './repositories/listing.repository';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Listing } from './models/listings.entity';
 import { BodyType } from './models/nested/body-type.entity';
@@ -11,6 +8,8 @@ import { Make } from './models/nested/makes.entity';
 import { Model } from './models/nested/models.entity';
 import { HealthModule } from './health/health.module';
 import { VehicleDataModule } from './modules/vehicle-data.module';
+import { FavouritesModule } from './modules/favourites.module';
+import { ListingModule } from './modules/listing.module';
 
 @Module({
   imports: [
@@ -22,9 +21,11 @@ import { VehicleDataModule } from './modules/vehicle-data.module';
     HealthModule,
     TypeOrmModule.forFeature([Listing, BodyType, Make, Model]),
     DatabaseModule,
+    ListingModule,
     VehicleDataModule,
+    FavouritesModule,
   ],
-  controllers: [AppController],
-  providers: [AppService, ListingRepository],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}

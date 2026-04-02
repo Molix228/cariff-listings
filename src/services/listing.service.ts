@@ -4,20 +4,20 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ListingRepository } from './repositories/listing.repository';
+import { ListingRepository } from '../repositories/listing.repository';
 import { Repository } from 'typeorm';
-import { Make } from './models/nested/makes.entity';
+import { Make } from '../models/nested/makes.entity';
 import axios from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Model } from './models/nested/models.entity';
-import { CreateListingInputDto } from './dto/listings/create-listing-input.dto';
-import { GetListingsDto } from './dto/listings/get-listings.dto';
-import { ListingResponseDto } from './dto/listings/listing.model';
-import { PaginatedResponseDto } from './dto/listings/pagination-response.dto';
+import { Model } from '../models/nested/models.entity';
+import { CreateListingInputDto } from '../dto/listings/create-listing-input.dto';
+import { GetListingsDto } from '../dto/listings/get-listings.dto';
+import { ListingResponseDto } from '../dto/listings/listing.model';
+import { PaginatedResponseDto } from '../dto/listings/pagination-response.dto';
 
 @Injectable()
-export class AppService {
-  private readonly _logger = new Logger(AppService.name);
+export class ListingService {
+  private readonly _logger = new Logger(ListingService.name);
   constructor(
     private readonly listingRepository: ListingRepository,
     @InjectRepository(Make) private readonly makesRepo: Repository<Make>,
