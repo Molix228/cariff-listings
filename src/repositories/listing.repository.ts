@@ -120,11 +120,16 @@ export class ListingRepository {
     }
   }
 
-  async delete(id: string): Promise<boolean> {
+  async delete(id: string, userId: string): Promise<boolean> {
     try {
-      const result = await this.listingRepository.delete(id);
-      if (!result)
-        throw new NotFoundException('Not found by ID, Cannot delete');
+      const result = await this.listingRepository.delete({
+        id: id,
+        userId: userId,
+      });
+      if (result.affected === 0)
+        throw new NotFoundException(
+          'Listing not found or you do not have permission to delete it',
+        );
       return (result.affected ?? 0) > 0;
     } catch (err) {
       console.error('Error while deleting Listing', err);

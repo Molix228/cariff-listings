@@ -25,6 +25,14 @@ export class AppController {
     return await this.appService.createNewAd(createAdDto, userId);
   }
 
+  @MessagePattern('listing.delete-ad')
+  async deleteAd(
+    @Payload() data: { id: string; userId: string },
+  ): Promise<boolean> {
+    const res: boolean = await this.appService.deleteAd(data.id, data.userId);
+    return res;
+  }
+
   @MessagePattern('listing.insert-makes')
   async insertMakes() {
     return await this.appService.seedMakes();
