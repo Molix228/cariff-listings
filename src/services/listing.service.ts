@@ -1,11 +1,12 @@
 import {
+  Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ListingRepository } from '../repositories/listing.repository';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Make } from '../models/nested/makes.entity';
 import axios from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,6 +15,13 @@ import { CreateListingInputDto } from '../dto/listings/create-listing-input.dto'
 import { GetListingsDto } from '../dto/listings/get-listings.dto';
 import { ListingResponseDto } from '../dto/listings/listing.model';
 import { PaginatedResponseDto } from '../dto/listings/pagination-response.dto';
+import { BodyType } from 'src/models/nested/body-type.entity';
+import { ScrapedListingDto } from 'src/dto/scrapper/scraped-listing.dto';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import FormData = require('form-data');
+import { env } from 'src/env';
 
 @Injectable()
 export class ListingService {
@@ -22,6 +30,10 @@ export class ListingService {
     private readonly listingRepository: ListingRepository,
     @InjectRepository(Make) private readonly makesRepo: Repository<Make>,
     @InjectRepository(Model) private readonly modelsRepo: Repository<Model>,
+    @InjectRepository(BodyType)
+    private readonly bodyTypeRepo: Repository<BodyType>,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
   ) {}
 
   async createNewAd(createAdDto: CreateListingInputDto, userId: string) {
@@ -163,7 +175,6 @@ export class ListingService {
       const apiModels = response.data.Results;
 
       if (!apiModels || apiModels.length === 0) {
-        console.log(`No models found for make ${makeEntry.make}.`);
         return { message: 'No models to insert' };
       }
 
@@ -193,6 +204,166 @@ export class ListingService {
         error.message,
       );
       return { error: 'Failed to seed models for the specified make' };
+    }
+  }
+
+  async processScrapedAd(data: ScrapedListingDto) {
+    try {
+      const token = env.apiGateway.service_token;
+      const rawMake = (data.specs['Make'] || 'UNKNOWN').toUpperCase().trim();
+      const rawModel = (data.specs['Model'] || 'UNKNOWN').trim();
+      const rawBody = (data.specs['Bodytype'] || 'other').toLowerCase().trim();
+
+      const finalS3Urls: string[] = [];
+
+      if (data.imageIds && data.imageIds.length > 0) {
+        const formData = new FormData();
+        let hasFiles = false;
+
+        for (const imageId of data.imageIds) {
+          const base64 = await this.cacheManager.get<string>(imageId);
+
+          if (base64) {
+            const buffer = Buffer.from(base64, 'base64');
+            formData.append('files', buffer, {
+              filename: `${imageId}.jpg`,
+              contentType: 'image/jpeg',
+            });
+            hasFiles = true;
+          }
+        }
+
+        if (hasFiles) {
+          try {
+            const uploadResponse = await axios.post(
+              `${env.apiGateway.url}/api/upload/images`,
+              formData,
+              {
+                headers: {
+                  ...formData.getHeaders(),
+                  Authorization: `Bearer ${token}`,
+                },
+                maxContentLength: Infinity,
+                maxBodyLength: Infinity,
+              },
+            );
+
+            if (uploadResponse.data && Array.isArray(uploadResponse.data)) {
+              finalS3Urls.push(...uploadResponse.data);
+            }
+
+            for (const imageId of data.imageIds) {
+              await this.cacheManager.del(imageId);
+            }
+          } catch (uploadError) {
+            this._logger.error(
+              `Failed to upload images via ApiGateway: ${uploadError.message}`,
+            );
+          }
+        }
+      }
+
+      let make = await this.makesRepo.findOne({
+        where: { make: ILike(rawMake) },
+      });
+
+      if (!make) {
+        try {
+          make = await this.makesRepo.save(
+            this.makesRepo.create({ make: rawMake }),
+          );
+        } catch (e) {
+          make = await this.makesRepo.findOne({
+            where: { make: ILike(rawMake) },
+          });
+        }
+      }
+
+      if (!make) {
+        throw new Error(`Failed to resolve make: ${rawMake}`);
+      }
+
+      let model = await this.modelsRepo.findOne({
+        where: {
+          name: ILike(rawModel),
+          make: { id: make.id },
+        },
+      });
+
+      if (!model) {
+        try {
+          const newModel = this.modelsRepo.create({
+            name: rawModel,
+            make: { id: make.id },
+          });
+          model = await this.modelsRepo.save(newModel);
+        } catch (e) {
+          model = await this.modelsRepo.findOne({
+            where: {
+              name: ILike(rawModel),
+              make: { id: make.id },
+            },
+          });
+        }
+      }
+
+      if (!model) {
+        throw new Error(
+          `Failed to resolve model: ${rawModel} for make: ${make.make}`,
+        );
+      }
+
+      let bodyType = await this.bodyTypeRepo.findOne({
+        where: { name: rawBody },
+      });
+
+      if (!bodyType) {
+        try {
+          bodyType = await this.bodyTypeRepo.save(
+            this.bodyTypeRepo.create({
+              name: rawBody,
+              category: 'passenger_car',
+            }),
+          );
+        } catch (e) {
+          bodyType = await this.bodyTypeRepo.findOne({
+            where: { name: rawBody },
+          });
+        }
+      }
+      const regDateStr = data.specs['Initial reg'];
+      let initialReg = new Date();
+      if (regDateStr?.includes('/')) {
+        const [month, year] = regDateStr.split('/');
+        initialReg = new Date(parseInt(year), parseInt(month) - 1, 1);
+      }
+
+      if (make && model && bodyType) {
+        const createAdDto = {
+          makeId: make.id,
+          modelId: model.id,
+          bodyTypeId: bodyType.id,
+          initialReg,
+          price: parseInt(data.price) || 0,
+          mileage: parseInt(data.specs['Mileage']?.replace(/\D/g, '')) || 0,
+          description: `Scraped from Auto24. Source: ${data.sourceUrl}`,
+          images: finalS3Urls,
+        };
+
+        const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
+
+        const result = await this.listingRepository.create(
+          createAdDto,
+          SYSTEM_USER_ID,
+        );
+        this._logger.log(`Successfully saved listing: ${data.title}`);
+        return result;
+      }
+    } catch (err) {
+      this._logger.error(
+        `Error processing scraped ad: ${data.title}`,
+        err.stack,
+      );
     }
   }
 }

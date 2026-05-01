@@ -1,10 +1,11 @@
 import { Controller } from '@nestjs/common';
 import { ListingService } from '../services/listing.service';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { GetListingsDto } from '../dto/listings/get-listings.dto';
 import { PaginatedResponseDto } from '../dto/listings/pagination-response.dto';
 import { CreateListingInputDto } from '../dto/listings/create-listing-input.dto';
 import { ListingResponseDto } from '../dto/listings/listing.model';
+import { ScrapedListingDto } from 'src/dto/scrapper/scraped-listing.dto';
 
 @Controller()
 export class ListingController {
@@ -49,5 +50,10 @@ export class ListingController {
   @MessagePattern('listing.insert-models-by-make')
   async insertModelsByMake(@Payload() data: { makeId: number }) {
     return await this.listingService.seedModelsByMake(data.makeId);
+  }
+
+  @EventPattern('scraped.data')
+  async handleScrappedAd(@Payload() data: ScrapedListingDto) {
+    return await this.listingService.processScrapedAd(data);
   }
 }
