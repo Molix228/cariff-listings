@@ -6,7 +6,8 @@ import {
   toNumber,
 } from './utils/env/env-extentions';
 
-const envPath = path.resolve(process.cwd(), '.env.development');
+const envFile = process.env.NODE_ENV === 'production' ? '.env' : '.env.development';
+const envPath = path.resolve(process.cwd(), envFile);
 console.log('Loading env from:', envPath);
 
 dotenv.config({
