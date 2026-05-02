@@ -6,8 +6,11 @@ import {
   toNumber,
 } from './utils/env/env-extentions';
 
+const envPath = path.resolve(process.cwd(), '.env.development');
+console.log('Loading env from:', envPath);
+
 dotenv.config({
-  path: path.join(__dirname, '../.env.development'),
+  path: path.join(envPath),
 });
 
 export const env = {
@@ -27,5 +30,13 @@ export const env = {
   },
   kafka: {
     kafkaBroker: getOsEnv('KAFKA_BROKER'),
+  },
+  redis: {
+    host: getOsEnvOptional('REDIS_HOST'),
+    port: toNumber(getOsEnvOptional('REDIS_PORT') || '6379'),
+  },
+  apiGateway: {
+    url: getOsEnvOptional('API_GATEWAY_URL'),
+    service_token: getOsEnvOptional('INTERNAL_SERVICE_TOKEN'),
   },
 };
