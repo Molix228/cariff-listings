@@ -7,8 +7,8 @@ import {
 } from './utils/env/env-extentions';
 
 const envName =
-  process.env.NODE_ENV === 'production' ? '../../.env' : '.env.development';
-const envPath = path.resolve(__dirname, '..', '..', envName);
+  process.env.NODE_ENV === 'production' ? '.env' : '.env.development';
+const envPath = path.resolve(process.cwd(), envName);
 console.log('Loading env from:', envPath);
 
 dotenv.config({
