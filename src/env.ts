@@ -27,7 +27,7 @@ export const env = {
     password: getOsEnvOptional('DB_PASSWORD'),
     database: getOsEnv('DB_NAME'),
     ssl: {
-      rejectUnauthorized: getOsEnv('REMOTE_DB') === 'true' ? false : undefined,
+      rejectUnauthorized: getOsEnvOptional('REMOTE_DB') === 'true' ? false : undefined,
     },
   },
   kafka: {
