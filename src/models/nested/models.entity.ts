@@ -12,7 +12,7 @@ export class Model {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   name: string;
 
   @ManyToOne(() => Make, (make) => make.models)

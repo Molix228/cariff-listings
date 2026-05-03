@@ -7,9 +7,30 @@ import { PaginationDto } from 'src/dto/listings/pagination.dto';
 export class ListingQueryBuilder {
   constructor(private queryBuilder: SelectQueryBuilder<Listing>) {
     this.queryBuilder
-      .leftJoinAndSelect('listing.make', 'make')
-      .leftJoinAndSelect('listing.model', 'model')
-      .leftJoinAndSelect('listing.bodyType', 'bodyType');
+      .leftJoin('listing.make', 'make')
+      .leftJoin('listing.model', 'model')
+      .leftJoin('listing.bodyType', 'bodyType');
+  }
+
+  applyPreviewSection(): this {
+    this.queryBuilder.select([
+      'listing.id',
+      'listing.price',
+      'listing.mileage',
+      'listing.initialReg',
+      'listing.images',
+      'listing.createdAt',
+      'listing.userId',
+      'make.make',
+      'model.name',
+      'bodyType.name',
+    ]);
+    return this;
+  }
+
+  applyFullSelection(): this {
+    this.queryBuilder.addSelect(['make', 'model', 'bodyType']);
+    return this;
   }
 
   applyFilters(filters: ListingFiltersDto): this {
