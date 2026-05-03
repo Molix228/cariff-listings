@@ -3,6 +3,9 @@ export interface ScrapedListingDto {
   price: string;
   imageIds: string[];
   specs: Record<string, string>;
+  description: string | null;
+  vin: string | null;
+  features: string[];
   sourceUrl: string;
   scrapeDate: string;
 }
