@@ -68,9 +68,7 @@ export class ListingService {
     }
   }
 
-  async getListings(
-    data: GetListingsDto,
-  ): Promise<PaginatedResponseDto<ListingResponseDto>> {
+  async getListings(data: GetListingsDto): Promise<PaginatedResponseDto<any>> {
     const { items, total } = await this.listingRepository.findWithFilters(
       data.filters,
       data.pagination,
@@ -82,6 +80,20 @@ export class ListingService {
       data.pagination.page || 1,
       data.pagination.limit || 20,
     );
+  }
+
+  async getListingById(id: string): Promise<ListingResponseDto> {
+    try {
+      const listing = await this.listingRepository.findById(id);
+      if (!listing) {
+        throw new NotFoundException(`Listing with ID ${id} not found`);
+      }
+      return listing;
+    } catch (err) {
+      if (err instanceof NotFoundException) throw err;
+      this._logger.error(`Error finding listing by ID: ${id}`, err.stack);
+      throw new InternalServerErrorException('Failed to fetch listing details');
+    }
   }
 
   async seedMakes() {

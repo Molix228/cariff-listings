@@ -85,10 +85,11 @@ export class ListingRepository {
 
   async findById(id: string): Promise<Listing> {
     try {
-      const foundListing = await this.listingRepository.findOne({
-        where: { id: id },
-      });
-      if (!foundListing) throw new NotFoundException('Cannot found by ID');
+      const qb = this.createQueryBuilder().applyFullSelection().build();
+
+      const foundListing = await qb.where('listing.id = :id', { id }).getOne();
+
+      if (!foundListing) throw new NotFoundException('Listing not found by ID');
       return foundListing;
     } catch (err) {
       console.error('[ListingRepository] Error while finding by ID', err);
@@ -144,14 +145,23 @@ export class ListingRepository {
     filters: ListingFiltersDto,
     pagination?: PaginationDto,
   ): Promise<{ items: Listing[]; total: number }> {
-    const qb = this.createQueryBuilder().applyFilters(filters);
+    const qb = this.createQueryBuilder()
+      .applyPreviewSection()
+      .applyFilters(filters);
 
     if (pagination) {
       qb.applyPagination(pagination);
     }
 
     const [items, total] = await qb.getManyAndCount();
-    return { items, total };
+
+    const formattedItems = items.map((item: any) => ({
+      ...item,
+      city: item.user?.cityName || null,
+      user: undefined,
+    }));
+
+    return { items: formattedItems, total };
   }
 
   private createQueryBuilder(): ListingQueryBuilder {

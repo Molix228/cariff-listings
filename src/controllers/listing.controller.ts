@@ -14,8 +14,13 @@ export class ListingController {
   @MessagePattern('listing.find')
   async getPaginated(
     @Payload() data: GetListingsDto,
-  ): Promise<PaginatedResponseDto<ListingResponseDto>> {
+  ): Promise<PaginatedResponseDto<any>> {
     return await this.listingService.getListings(data);
+  }
+
+  @MessagePattern('listing.get-by-id')
+  async getById(@Payload() id: string): Promise<ListingResponseDto> {
+    return await this.listingService.getListingById(id);
   }
 
   @MessagePattern('listing.create-ad')
