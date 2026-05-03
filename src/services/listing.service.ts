@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ListingRepository } from '../repositories/listing.repository';
-import { ILike, Repository } from 'typeorm';
+import { DataSource, ILike, Repository } from 'typeorm';
 import { Make } from '../models/nested/makes.entity';
 import axios from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -34,6 +34,7 @@ export class ListingService {
     private readonly bodyTypeRepo: Repository<BodyType>,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
+    private readonly dataSourse: DataSource,
   ) {}
 
   async createNewAd(createAdDto: CreateListingInputDto, userId: string) {
@@ -283,34 +284,26 @@ export class ListingService {
         throw new Error(`Failed to resolve make: ${rawMake}`);
       }
 
-      let model = await this.modelsRepo.findOne({
-        where: {
-          name: ILike(rawModel),
-          make: { id: make.id },
-        },
-      });
+      const model = await this.dataSourse.transaction(async (manager) => {
+        const existingModel = await manager.findOne(Model, {
+          where: { name: ILike(rawModel), make: { id: make.id } },
+        });
 
-      if (!model) {
+        if (existingModel) return existingModel;
         try {
-          const newModel = this.modelsRepo.create({
+          const newModel = manager.create(Model, {
             name: rawModel,
             make: { id: make.id },
           });
-          model = await this.modelsRepo.save(newModel);
+          return await manager.save(newModel);
         } catch (e) {
-          model = await this.modelsRepo.findOne({
-            where: {
-              name: ILike(rawModel),
-              make: { id: make.id },
-            },
+          return await manager.findOne(Model, {
+            where: { name: ILike(rawModel), make: { id: make.id } },
           });
         }
-      }
-
+      });
       if (!model) {
-        throw new Error(
-          `Failed to resolve model: ${rawModel} for make: ${make.make}`,
-        );
+        throw new Error(`Critical: Failed to resolve model: ${rawModel}`);
       }
 
       let bodyType = await this.bodyTypeRepo.findOne({
