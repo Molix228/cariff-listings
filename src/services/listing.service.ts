@@ -214,6 +214,7 @@ export class ListingService {
       const rawMake = (data.specs['Make'] || 'UNKNOWN').toUpperCase().trim();
       const rawModel = (data.specs['Model'] || 'UNKNOWN').trim();
       const rawBody = (data.specs['Bodytype'] || 'other').toLowerCase().trim();
+      const rawVin = data.specs['VIN'] || null;
 
       const finalS3Urls: string[] = [];
 
@@ -332,6 +333,14 @@ export class ListingService {
       }
 
       if (make && model && bodyType) {
+        const cleanVin =
+          rawVin && rawVin.length === 17 && !rawVin.includes('.')
+            ? rawVin
+            : null;
+        const finalDescription = data.description
+          ? `${data.description}\n\nScrapped from Auto24. Source: ${data.sourceUrl}`
+          : `Scraped from Auto24. Source: ${data.sourceUrl}`;
+
         const createAdDto = {
           makeId: make.id,
           modelId: model.id,
@@ -339,8 +348,11 @@ export class ListingService {
           initialReg,
           price: parseInt(data.price) || 0,
           mileage: parseInt(data.specs['Mileage']?.replace(/\D/g, '')) || 0,
-          description: `Scraped from Auto24. Source: ${data.sourceUrl}`,
+          description: finalDescription,
           images: finalS3Urls,
+          vin: cleanVin,
+          features: data.features || [],
+          specs: data.specs || {},
         };
 
         const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';

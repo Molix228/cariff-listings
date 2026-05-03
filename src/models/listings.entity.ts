@@ -40,6 +40,15 @@ export class Listing {
   @Column({ type: 'text', name: 'description', nullable: true })
   description?: string;
 
+  @Column({ type: 'varchar', length: 17, nullable: true })
+  vin?: string;
+
+  @Column('text', { array: true, nullable: true, default: '{}' })
+  features: string[];
+
+  @Column({ type: 'jsonb', nullable: true, default: {} })
+  specs: Record<string, string>;
+
   @Column('text', { array: true, nullable: false })
   images: string[];
 
