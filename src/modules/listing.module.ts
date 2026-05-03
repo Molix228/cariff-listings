@@ -21,7 +21,7 @@ import { env } from 'src/env';
         return {
           stores: [new KeyvRedis(redisUri)],
           namespace: 'auto24_imgs',
-          ttl: 3600 * 1000,
+          ttl: 3600,
         };
       },
     }),
