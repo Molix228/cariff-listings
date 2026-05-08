@@ -28,12 +28,26 @@ export class ListingRepository {
     private readonly modelsRepo: Repository<Model>,
   ) {}
 
+  async existsBySourceId(sourceListingId: string): Promise<boolean> {
+    const count = await this.listingRepository.count({
+      where: { sourceListingId },
+    });
+    return count > 0;
+  }
+
   async create(
     createListingDto: CreateListingInputDto,
     userId: string,
   ): Promise<Listing> {
     try {
-      const { bodyTypeId, makeId, modelId, ...listingData } = createListingDto;
+      const {
+        bodyTypeId,
+        makeId,
+        modelId,
+        sourceListingId,
+        sourceUrl,
+        ...listingData
+      } = createListingDto;
 
       // Check BodyType
       const bodyType = await this.bodyTypeRepo.findOne({
@@ -71,10 +85,17 @@ export class ListingRepository {
         make,
         model,
         userId,
+        sourceListingId: sourceListingId || null,
+        sourceUrl: sourceUrl || null,
       });
 
       return await this.listingRepository.save(newListing);
     } catch (err) {
+      if (err.code === '23505') {
+        console.warn(
+          `[ListingRepository] Duplicate source ID: ${createListingDto.sourceListingId}`,
+        );
+      }
       console.error('[ListingRepository] Error creating listing:', err);
       throw new InternalServerErrorException(
         'Failed to create listing',

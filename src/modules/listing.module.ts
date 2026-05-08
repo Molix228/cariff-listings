@@ -12,20 +12,7 @@ import KeyvRedis from '@keyv/redis';
 import { env } from 'src/env';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Listing, BodyType, Make, Model]),
-    CacheModule.registerAsync({
-      isGlobal: true,
-      useFactory: async () => {
-        const redisUri = `redis://${env.redis.host}:${env.redis.port}`;
-        return {
-          stores: [new KeyvRedis(redisUri)],
-          namespace: 'auto24_imgs',
-          ttl: 3600,
-        };
-      },
-    }),
-  ],
+  imports: [TypeOrmModule.forFeature([Listing, BodyType, Make, Model])],
   controllers: [ListingController],
   providers: [ListingService, ListingRepository],
   exports: [ListingService, ListingRepository],

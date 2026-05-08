@@ -52,6 +52,17 @@ export class Listing {
   @Column('text', { array: true, nullable: false })
   images: string[];
 
+  @Column({
+    type: 'varchar',
+    name: 'source_listing_id',
+    nullable: true,
+    unique: true,
+  })
+  sourceListingId: string | null;
+
+  @Column({ type: 'varchar', name: 'source_url', nullable: true })
+  sourceUrl: string | null;
+
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
