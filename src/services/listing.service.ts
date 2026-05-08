@@ -17,11 +17,11 @@ import { ListingResponseDto } from '../dto/listings/listing.model';
 import { PaginatedResponseDto } from '../dto/listings/pagination-response.dto';
 import { BodyType } from 'src/models/nested/body-type.entity';
 import { ScrapedListingDto } from 'src/dto/scrapper/scraped-listing.dto';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import FormData = require('form-data');
 import { env } from 'src/env';
+
+const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
 
 @Injectable()
 export class ListingService {
@@ -32,8 +32,6 @@ export class ListingService {
     @InjectRepository(Model) private readonly modelsRepo: Repository<Model>,
     @InjectRepository(BodyType)
     private readonly bodyTypeRepo: Repository<BodyType>,
-    @Inject(CACHE_MANAGER)
-    private readonly cacheManager: Cache,
     private readonly dataSourse: DataSource,
   ) {}
 
@@ -120,7 +118,7 @@ export class ListingService {
           .execute();
 
         console.log(
-          `[Auto24] Прогресс: ${i + chunk.length} / ${formattedMakes.length}`,
+          `[Auto24] Process: ${i + chunk.length} / ${formattedMakes.length}`,
         );
       }
 
@@ -133,9 +131,7 @@ export class ListingService {
 
   async seedModels() {
     const makes = await this.makesRepo.find();
-    console.log(
-      `[Auto24] Начинаем загрузку моделей для ${makes.length} марок...`,
-    );
+    console.log(`[Auto24] Start loading models for ${makes.length}...`);
 
     for (const makeEntry of makes) {
       try {
@@ -160,12 +156,12 @@ export class ListingService {
           .execute();
 
         console.log(
-          `✅ ${makeEntry.make}: добавлено ${modelsToInsert.length} моделей.`,
+          `✅ ${makeEntry.make}: added ${modelsToInsert.length} models.`,
         );
 
         await new Promise((resolve) => setTimeout(resolve, 150));
       } catch (error) {
-        console.error(`❌ Ошибка на марке ${makeEntry.make}:`, error.message);
+        console.error(`❌ Make Error ${makeEntry.make}:`, error.message);
         continue;
       }
     }
@@ -223,74 +219,72 @@ export class ListingService {
   async processScrapedAd(data: ScrapedListingDto) {
     try {
       const token = env.apiGateway.service_token;
-      const rawMake = (data.specs['Make'] || 'UNKNOWN').toUpperCase().trim();
-      const rawModel = (data.specs['Model'] || 'UNKNOWN').trim();
-      const rawBody = (data.specs['Bodytype'] || 'other').toLowerCase().trim();
-      const rawVin = data.specs['VIN'] || null;
+
+      const alreadyExists = await this.listingRepository.existsBySourceId(
+        data.sourceListingId,
+      );
+      if (alreadyExists) return;
 
       const finalS3Urls: string[] = [];
 
-      if (data.imageIds && data.imageIds.length > 0) {
+      if (data.imageUrls && data.imageUrls.length > 0) {
         const formData = new FormData();
-        let hasFiles = false;
+        let fileCount = 0;
 
-        for (const imageId of data.imageIds) {
-          const base64 = await this.cacheManager.get<string>(imageId);
+        await Promise.all(
+          data.imageUrls.map(async (url, index) => {
+            try {
+              const res = await axios.get(url, {
+                responseType: 'arraybuffer',
+                timeout: 10000,
+              });
+              const buffer = Buffer.from(res.data);
 
-          if (base64) {
-            const buffer = Buffer.from(base64, 'base64');
-            formData.append('files', buffer, {
-              filename: `${imageId}.jpg`,
-              contentType: 'image/jpeg',
-            });
-            hasFiles = true;
-          }
-        }
+              formData.append('files', buffer, {
+                filename: `scraped_${data.sourceListingId}_${index}.jpg`,
+                contentType: 'image/jpeg',
+              });
+              fileCount++;
+            } catch (e) {
+              this._logger.error(
+                `Failed to download image from ${url}: ${e.message}`,
+              );
+            }
+          }),
+        );
 
-        if (hasFiles) {
-          try {
-            const uploadResponse = await axios.post(
-              `${env.apiGateway.url}/api/upload/images`,
-              formData,
-              {
-                headers: {
-                  ...formData.getHeaders(),
-                  Authorization: `Bearer ${token}`,
-                },
-                maxContentLength: Infinity,
-                maxBodyLength: Infinity,
+        if (fileCount > 0) {
+          const uploadRes = await axios.post(
+            `${env.apiGateway.url}/api/upload/images`,
+            formData,
+            {
+              headers: {
+                ...formData.getHeaders(),
+                Authorization: `Bearer ${token}`,
               },
-            );
-
-            if (uploadResponse.data && Array.isArray(uploadResponse.data)) {
-              finalS3Urls.push(...uploadResponse.data);
-            }
-
-            for (const imageId of data.imageIds) {
-              await this.cacheManager.del(imageId);
-            }
-          } catch (uploadError) {
-            this._logger.error(
-              `Failed to upload images via ApiGateway: ${uploadError.message}`,
-            );
-          }
+              maxContentLength: Infinity,
+              maxBodyLength: Infinity,
+            },
+          );
+          if (Array.isArray(uploadRes.data))
+            finalS3Urls.push(...uploadRes.data);
         }
       }
+
+      const rawMake = (data.specs['Make'] || 'UNKNOWN').toUpperCase().trim();
+      const rawModel = (data.specs['Model'] || 'UNKNOWN').trim();
+      const rawBody = (data.specs['Bodytype'] || 'other').toLowerCase().trim();
+      const rawVin = data.vin || data.specs['VIN'] || null;
 
       let make = await this.makesRepo.findOne({
         where: { make: ILike(rawMake) },
       });
-
       if (!make) {
-        try {
-          make = await this.makesRepo.save(
-            this.makesRepo.create({ make: rawMake }),
+        make = await this.makesRepo
+          .save(this.makesRepo.create({ make: rawMake }))
+          .catch(() =>
+            this.makesRepo.findOne({ where: { make: ILike(rawMake) } }),
           );
-        } catch (e) {
-          make = await this.makesRepo.findOne({
-            where: { make: ILike(rawMake) },
-          });
-        }
       }
 
       if (!make) {
@@ -339,9 +333,16 @@ export class ListingService {
       }
       const regDateStr = data.specs['Initial reg'];
       let initialReg = new Date();
-      if (regDateStr?.includes('/')) {
-        const [month, year] = regDateStr.split('/');
-        initialReg = new Date(parseInt(year), parseInt(month) - 1, 1);
+      if (regDateStr && regDateStr.includes('/')) {
+        const [month, year] = regDateStr.split('/').map((s) => parseInt(s));
+        if (!isNaN(month) && !isNaN(year)) {
+          initialReg = new Date(year, month - 1, 1);
+        }
+      }
+      if (!make || !model || !bodyType) {
+        throw new Error(
+          `Incomplete data: Make(${!!make}), Model(${!!model}), BodyType(${!!bodyType})`,
+        );
       }
 
       if (make && model && bodyType) {
@@ -357,7 +358,7 @@ export class ListingService {
           makeId: make.id,
           modelId: model.id,
           bodyTypeId: bodyType.id,
-          initialReg,
+          initialReg: isNaN(initialReg.getTime()) ? new Date() : initialReg,
           price: parseInt(data.price) || 0,
           mileage: parseInt(data.specs['Mileage']?.replace(/\D/g, '')) || 0,
           description: finalDescription,
@@ -365,9 +366,9 @@ export class ListingService {
           vin: cleanVin,
           features: data.features || [],
           specs: data.specs || {},
+          sourceListingId: data.sourceListingId,
+          sourceUrl: data.sourceUrl,
         };
-
-        const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
 
         const result = await this.listingRepository.create(
           createAdDto,

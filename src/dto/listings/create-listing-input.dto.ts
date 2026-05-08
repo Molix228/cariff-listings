@@ -46,4 +46,12 @@ export class CreateListingInputDto {
   @IsArray()
   @IsNotEmpty()
   images: string[];
+
+  @IsOptional()
+  @IsString()
+  sourceListingId: string;
+
+  @IsOptional()
+  @IsString()
+  sourceUrl: string;
 }
