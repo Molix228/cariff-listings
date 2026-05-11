@@ -35,7 +35,7 @@ export class ListingQueryBuilder {
 
   applyFilters(filters: ListingFiltersDto): this {
     if (filters.userId) {
-      this.queryBuilder.andWhere('listing.user_id = :userId', {
+      this.queryBuilder.andWhere('listing.userId = :userId', {
         userId: filters.userId,
       });
     }
@@ -54,17 +54,23 @@ export class ListingQueryBuilder {
             });
         }),
       );
+    } else {
+      if (filters.makeId && filters.makeId.length > 0) {
+        this.queryBuilder.andWhere('make.id IN (:...makeIds)', {
+          makeIds: filters.makeId,
+        });
+      }
+
+      if (filters.modelId && filters.modelId.length > 0) {
+        this.queryBuilder.andWhere('model.id IN (:...modelIds)', {
+          modelIds: filters.modelId,
+        });
+      }
     }
 
-    if (filters.makeId && filters.makeId.length > 0) {
-      this.queryBuilder.andWhere('listing.make_id IN (:...makeIds)', {
-        makeIds: filters.makeId,
-      });
-    }
-
-    if (filters.modelId && filters.modelId.length > 0) {
-      this.queryBuilder.andWhere('listing.model_id IN (:...modelIds)', {
-        modelIds: filters.modelId,
+    if (filters.bodyTypeId && filters.bodyTypeId.length > 0) {
+      this.queryBuilder.andWhere('bodyType.id IN (:...bodyTypeIds)', {
+        bodyTypeIds: filters.bodyTypeId,
       });
     }
 
@@ -81,19 +87,61 @@ export class ListingQueryBuilder {
       }
     }
 
+    if (filters.mileageRange) {
+      if (filters.mileageRange.min) {
+        this.queryBuilder.andWhere('listing.mileage >= :minMil', {
+          minMil: filters.mileageRange.min,
+        });
+      }
+      if (filters.mileageRange.max) {
+        this.queryBuilder.andWhere('listing.mileage <= :maxMil', {
+          maxMil: filters.mileageRange.max,
+        });
+      }
+    }
+
+    if (filters.yearRange) {
+      if (filters.yearRange.min) {
+        this.queryBuilder.andWhere('listing.initialReg >= :startDate', {
+          startDate: `${filters.yearRange.min}-01-01`,
+        });
+      }
+      if (filters.yearRange.max) {
+        this.queryBuilder.andWhere('listing.initialReg <= :endDate', {
+          endDate: `${filters.yearRange.max}-12-31`,
+        });
+      }
+    }
+
+    if (filters.fuelTypes && filters.fuelTypes.length > 0) {
+      this.queryBuilder.andWhere(
+        "LOWER(listing.specs ->> 'Fuel') IN (:...fuels)",
+        {
+          fuels: filters.fuelTypes.map((f) => f.toLowerCase()),
+        },
+      );
+    }
+
+    if (filters.transmissions && filters.transmissions.length > 0) {
+      this.queryBuilder.andWhere(
+        "LOWER(listing.specs ->> 'Transmission') IN (:...transmissions)",
+        {
+          transmissions: filters.transmissions.map((t) => t.toLowerCase()),
+        },
+      );
+    }
+
     if (filters.sortBy) {
+      const order = filters.sortBy.includes('asc') ? 'ASC' : 'DESC';
+
       switch (filters.sortBy) {
         case SortOrder.PRICE_ASC:
-          this.queryBuilder.orderBy('listing.price', 'ASC');
-          break;
         case SortOrder.PRICE_DESC:
-          this.queryBuilder.orderBy('listing.price', 'DESC');
+          this.queryBuilder.orderBy('listing.price', order);
           break;
         case SortOrder.DATE_OLD:
-          this.queryBuilder.orderBy('listing.createdAt', 'ASC');
-          break;
         case SortOrder.DATE_NEW:
-          this.queryBuilder.orderBy('listing.createdAt', 'DESC');
+          this.queryBuilder.orderBy('listing.createdAt', order);
           break;
         default:
           this.queryBuilder.orderBy('listing.createdAt', 'DESC');

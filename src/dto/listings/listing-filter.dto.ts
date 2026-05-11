@@ -10,6 +10,7 @@ import {
 import { SortOrder } from 'src/enums/sort-order.enum';
 import { PriceRangeDto } from './nested/price-range.dto';
 import { DateRangeDto } from './nested/date-range.dto';
+import { RangeDto } from './nested/range.dto';
 
 export class ListingFiltersDto {
   @IsOptional()
@@ -42,6 +43,32 @@ export class ListingFiltersDto {
   @ValidateNested()
   @Type(() => DateRangeDto)
   dateRange?: DateRangeDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RangeDto)
+  mileageRange?: RangeDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RangeDto)
+  yearRange?: RangeDto;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  fuelTypes?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  transmissions?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @Type(() => Number)
+  bodyTypeId?: number[];
 
   @IsOptional()
   @IsEnum(SortOrder)
