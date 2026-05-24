@@ -20,25 +20,20 @@ export class HealthController {
   @HealthCheck()
   check() {
     return this.health.check([
-      // Проверка heap памяти (не более 150MB)
       () => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024),
 
-      // Проверка RSS памяти (не более 300MB)
       () => this.memory.checkRSS('memory_rss', 300 * 1024 * 1024),
 
-      // Проверка диска (не более 90% заполнено)
       () =>
         this.disk.checkStorage('disk', {
           path: '/',
           thresholdPercent: process.env.NODE_ENV === 'production' ? 0.85 : 0.95,
         }),
 
-      // Проверка Kafka
       () => this.kafka.isHealthy('kafka-broker'),
     ]);
   }
 
-  // Liveness probe - приложение работает
   @Get('live')
   liveness() {
     return {
@@ -48,7 +43,6 @@ export class HealthController {
     };
   }
 
-  // Readiness probe - готово принимать трафик
   @Get('ready')
   @HealthCheck()
   readiness() {
